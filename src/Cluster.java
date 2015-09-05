@@ -1,13 +1,11 @@
 import weka.clusterers.SimpleKMeans;
 import weka.core.*;
+import weka.core.pmml.Array;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by dennis on 20/08/15.
@@ -33,7 +31,7 @@ public class Cluster {
         br.close();
 
         // make data
-        Map<String, List<Double>> data = new HashMap<>();
+        Map<String, ArrayList<Double>> data = new HashMap<>();
         for (String s : rawdata){
             String[] line = s.split(",", 2);
             ArrayList<Double> entryData = new ArrayList<>();
@@ -45,10 +43,43 @@ public class Cluster {
 
         // make instances
         int n = data.size(); // number of devices
+        String[] devices = data.keySet().toArray(new String[n]);
 
-        int p = data.get(data.keySet().toArray()[0]).size(); // number of features
+        int p = data.get(devices[0]).size(); // number of features
 
+        // make attributes
         ArrayList<Attribute> atts = new ArrayList<>();
+        for (int i = 0; i < p; i++)
+        {
+            Attribute att = new Attribute("attribute"+i, i);
+            atts.add(att);
+        }
+
+        // make instances
+        Instances wekaData = new Instances("cluster", atts, n);
+        for (int i = 0; i < n; i++) {
+            Instance row = new DenseInstance(p);
+            ArrayList<Double> entryData = data.get(devices[i]);
+            for (int j = 0; j < p; j++) {
+                row.setValue(j, entryData.get(j));
+            }
+            wekaData.add(row);
+        }
+
+        // perform k-mean
+        SimpleKMeans KM = new SimpleKMeans();
+        KM.setSeed(10);
+        KM.setPreserveInstancesOrder(true);
+        KM.setNumClusters(5);
+        KM.buildClusterer(wekaData);
+
+        int[] assignments = KM.getAssignments();
+
+        for (int i = 0; i < n; i++) {
+            System.out.printf("device %s -> cluster %d\n", devices[i], assignments[i]);
+        }
+
+
 
 
 
